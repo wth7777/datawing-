@@ -82,20 +82,17 @@ jobs:
         export PATH=$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
         
         echo "=== Set up buildozer SDK directory ==="
-        mkdir -p ~/.buildozer/android/platform/android-sdk
+        mkdir -p ~/.buildozer/android/platform
         
-        # Copy licenses so buildozer accepts SDK packages
-        mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-        cp -r $ANDROID_HOME/licenses/* ~/.buildozer/android/platform/android-sdk/licenses/ 2>/dev/null || true
-        
-        # Copy the build-tools that we installed via sdkmanager
-        cp -r $ANDROID_HOME/build-tools ~/.buildozer/android/platform/android-sdk/ 2>/dev/null || true
-        cp -r $ANDROID_HOME/platforms ~/.buildozer/android/platform/android-sdk/ 2>/dev/null || true
-        cp -r $ANDROID_HOME/cmdline-tools ~/.buildozer/android/platform/android-sdk/ 2>/dev/null || true
+        # If buildozer already created an SDK dir, back it up and replace with our pre-built one
+        if [ -d "$ANDROID_HOME" ] && [ "$ANDROID_HOME" != "~/.buildozer/android/platform/android-sdk" ]; then
+          rm -rf ~/.buildozer/android/platform/android-sdk
+          cp -r $ANDROID_HOME ~/.buildozer/android/platform/android-sdk
+          echo "Copied full SDK from $ANDROID_HOME"
+        fi
         
         echo "=== buildozer SDK contents ==="
         ls ~/.buildozer/android/platform/android-sdk/ 2>/dev/null || echo "(empty)"
-        ls ~/.buildozer/android/platform/android-sdk/licenses/ 2>/dev/null || echo "(no licenses)"
         
         echo "=== Environment ==="
         echo "ANDROID_HOME=$ANDROID_HOME"
