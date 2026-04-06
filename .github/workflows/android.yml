@@ -1,0 +1,40 @@
+name: Build Data Wing APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip git
+    
+    - name: Install buildozer
+      run: |
+        pip install buildozer
+    
+    - name: Build APK
+      run: |
+        cd /home/runner/work/_temp/_work_repo
+        buildozer android debug
+      shell: bash
+    
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: datawing.apk
+        path: bin/*.apk
