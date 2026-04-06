@@ -1,0 +1,76 @@
+name: Build Data Wing APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip git openjdk-17-jdk unzip
+    
+    - name: Set up Java
+      run: |
+        echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
+        java -version
+    
+    - name: Install Android SDK
+      uses: android-actions/setup-android@v2
+    
+    - name: Configure Android SDK paths
+      run: |
+        echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+        echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+        echo "PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
+        echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list_installed
+    
+    - name: Accept Android licenses
+      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+    
+    - name: Install buildozer
+      run: |
+        pip install --upgrade pip
+        pip install buildozer cython
+    
+    - name: Build APK
+      run: |
+        buildozer android debug --verbose 2>&1 | tee buildozer.log
+        echo "BUILD_EXIT_CODE=$?" >> $GITHUB_ENV
+      timeout-minutes: 30
+    
+    - name: Upload build log (always)
+      uses: actions/upload-artifact@v4
+      with:
+        name: buildozer.log
+        path: buildozer.log
+        retention-days: 5
+    
+    - name: Check build result
+      run: |
+        echo "Build exit code: $BUILD_EXIT_CODE"
+        if [ "$BUILD_EXIT_CODE" != "0" ]; then
+          echo "Build failed! Check buildozer.log for details."
+          exit 1
+        fi
+    
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: datawing.apk
+        path: bin/*.apk
+        if-no-files-found: warn
