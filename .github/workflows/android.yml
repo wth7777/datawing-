@@ -21,7 +21,15 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y python3-pip git
+        sudo apt-get install -y python3-pip git openjdk-17-jdk
+    
+    - name: Set up Java
+      env:
+        JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+      run: echo "JAVA_HOME=$JAVA_HOME" >> $GITHUB_ENV
+    
+    - name: Install Android SDK
+      uses: android-actions/setup-android@v2
     
     - name: Install buildozer
       run: |
