@@ -78,10 +78,24 @@ jobs:
         ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
         JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
       run: |
-        export ANDROID_HOME=$ANDROID_HOME
-        export ANDROID_SDK_ROOT=$ANDROID_HOME
         export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
         export PATH=$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
+        
+        echo "=== Set up buildozer SDK directory ==="
+        mkdir -p ~/.buildozer/android/platform/android-sdk
+        
+        # Copy licenses so buildozer accepts SDK packages
+        mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+        cp -r $ANDROID_HOME/licenses/* ~/.buildozer/android/platform/android-sdk/licenses/ 2>/dev/null || true
+        
+        # Copy the build-tools that we installed via sdkmanager
+        cp -r $ANDROID_HOME/build-tools ~/.buildozer/android/platform/android-sdk/ 2>/dev/null || true
+        cp -r $ANDROID_HOME/platforms ~/.buildozer/android/platform/android-sdk/ 2>/dev/null || true
+        cp -r $ANDROID_HOME/cmdline-tools ~/.buildozer/android/platform/android-sdk/ 2>/dev/null || true
+        
+        echo "=== buildozer SDK contents ==="
+        ls ~/.buildozer/android/platform/android-sdk/ 2>/dev/null || echo "(empty)"
+        ls ~/.buildozer/android/platform/android-sdk/licenses/ 2>/dev/null || echo "(no licenses)"
         
         echo "=== Environment ==="
         echo "ANDROID_HOME=$ANDROID_HOME"
