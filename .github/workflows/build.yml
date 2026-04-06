@@ -38,15 +38,33 @@ jobs:
         echo "PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
         echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
     
-    - name: Accept ALL Android licenses FIRST
+    - name: Accept Android licenses and install build-tools
       run: |
+        export ANDROID_HOME=$ANDROID_HOME
+        export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+        
+        # Write ALL known Android SDK license hashes
         mkdir -p $ANDROID_HOME/licenses
-        printf '\n24333f8a63b6825ea9c5514f83c2829b004d1fee' >> $ANDROID_HOME/licenses/android-sdk-license
+        printf '\n24333f8a63b6825ea9c5514f83c2829b004d1fee' > $ANDROID_HOME/licenses/android-sdk-license
         printf '\n84831b9409646a918e30573bab4c9c91346d8abd' >> $ANDROID_HOME/licenses/android-sdk-license
         printf '\nd56f5187479451eabf01fb78af6dfcb131a6481e' >> $ANDROID_HOME/licenses/android-sdk-license
         printf '\ne6b7c2ab7fa2298c15165e9583d0acf0b04a2232' >> $ANDROID_HOME/licenses/android-sdk-license
-        echo "License files written"
+        printf '\nd975f751698a77b662f1254ddbeed3901e976f5a' > $ANDROID_HOME/licenses/intel-android-extra-license
+        printf '\n33B6E2B3' > $ANDROID_HOME/licenses/android-googletv-license
+        printf '\n859f317696f67ef3d7f30a50a5560e7834b43903' > $ANDROID_HOME/licenses/android-sdk-preview-license
+        printf '\n2times' > $ANDROID_HOME/licenses/mips-android-sysimage-license
+        
+        echo "=== Licenses written ==="
         ls -la $ANDROID_HOME/licenses/
+        
+        # Accept ALL licenses via yes pipe
+        yes | sdkmanager --licenses 2>&1 | tail -5
+        
+        echo "=== Installing build-tools 37.0.0 ==="
+        sdkmanager "build-tools;37.0.0" "platforms;android-34" 2>&1 | tail -10
+        
+        echo "=== Installed packages ==="
+        sdkmanager --list_installed 2>&1 | grep -E "build-tools|platforms"
     
     - name: Install buildozer
       run: |
@@ -55,12 +73,27 @@ jobs:
     
     - name: Build APK
       id: build
+      env:
+        ANDROID_HOME: ${{ env.ANDROID_HOME }}
+        ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
+        JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
       run: |
-        echo "Build started at $(date)"
+        export ANDROID_HOME=$ANDROID_HOME
+        export ANDROID_SDK_ROOT=$ANDROID_HOME
+        export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+        export PATH=$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
+        
+        echo "=== Environment ==="
+        echo "ANDROID_HOME=$ANDROID_HOME"
+        echo "JAVA_HOME=$JAVA_HOME"
+        which java
+        java -version 2>&1 | head -1
+        ls $ANDROID_HOME/build-tools/ 2>/dev/null || echo "No build-tools found"
+        
+        echo "=== Starting build at $(date) ==="
         set -o pipefail
         buildozer android debug 2>&1 | tee buildozer.log
         result=${PIPESTATUS[0]}
-        echo "build_exit_code=$result" >> $GITHUB_OUTPUT
         echo "Build finished at $(date) with exit code $result"
         exit $result
       timeout-minutes: 30
