@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,20 +27,22 @@ jobs:
         sudo apt-get install -y python3-pip git openjdk-17-jdk
     
     - name: Set up Java
-      env:
-        JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
-      run: echo "JAVA_HOME=$JAVA_HOME" >> $GITHUB_ENV
+      run: |
+        echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
+        java -version
     
     - name: Install Android SDK
       uses: android-actions/setup-android@v2
     
+    - name: Accept Android licenses
+      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+    
     - name: Install buildozer
-      run: |
-        pip install buildozer
+      run: pip install buildozer
     
     - name: Build APK
-      run: |
-        buildozer android debug
+      run: buildozer android debug
+      timeout-minutes: 30
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
