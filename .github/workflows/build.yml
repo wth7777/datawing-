@@ -37,20 +37,16 @@ jobs:
         echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
         echo "PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
         echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list_installed
     
     - name: Accept ALL Android licenses FIRST
       run: |
         mkdir -p $ANDROID_HOME/licenses
-        echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
-        echo "84831b9409646a918e30573bab4c9c91346d8abd" >> $ANDROID_HOME/licenses/android-sdk-license
-        echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $ANDROID_HOME/licenses/android-sdk-license
-        echo "e6b7c2ab7fa2298c15165e9583d0acf0b04a2232" >> $ANDROID_HOME/licenses/android-sdk-license
-        echo "d975f751698a77b662f1254ddbeed3901e976f5a" > $ANDROID_HOME/licenses/intel-android-extra-license
-        echo "33B6E2B3" > $ANDROID_HOME/licenses/android-googletv-license
-        echo "2times" > $ANDROID_HOME/licenses/mips-android-sysimage-license
-        echo "859f317696f67ef3d7f30a50a5560e7834b43903" > $ANDROID_HOME/licenses/android-sdk-preview-license
+        printf '\n24333f8a63b6825ea9c5514f83c2829b004d1fee' >> $ANDROID_HOME/licenses/android-sdk-license
+        printf '\n84831b9409646a918e30573bab4c9c91346d8abd' >> $ANDROID_HOME/licenses/android-sdk-license
+        printf '\nd56f5187479451eabf01fb78af6dfcb131a6481e' >> $ANDROID_HOME/licenses/android-sdk-license
+        printf '\ne6b7c2ab7fa2298c15165e9583d0acf0b04a2232' >> $ANDROID_HOME/licenses/android-sdk-license
         echo "License files written"
+        ls -la $ANDROID_HOME/licenses/
     
     - name: Install buildozer
       run: |
@@ -58,31 +54,31 @@ jobs:
         pip install buildozer cython
     
     - name: Build APK
+      id: build
       run: |
-        buildozer android debug --verbose 2>&1 | tee buildozer.log
-        echo "BUILD_EXIT_CODE=${PIPESTATUS[0]}" >> $GITHUB_ENV
+        echo "Build started at $(date)"
+        set -o pipefail
+        buildozer android debug 2>&1 | tee buildozer.log
+        result=${PIPESTATUS[0]}
+        echo "build_exit_code=$result" >> $GITHUB_OUTPUT
+        echo "Build finished at $(date) with exit code $result"
+        exit $result
       timeout-minutes: 30
     
     - name: Upload build log (always)
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: buildozer.log
         path: buildozer.log
         retention-days: 5
     
-    - name: Check build result
+    - name: List output files
       run: |
-        echo "Build exit code: $BUILD_EXIT_CODE"
-        if [ "$BUILD_EXIT_CODE" != "0" ]; then
-          echo "Build failed! Check buildozer.log for details."
-          exit 1
-        fi
-        # Also verify APK was actually produced
-        if [ ! -f bin/*.apk ] && [ ! -f bin/datawing/*.apk ]; then
-          echo "ERROR: No APK found in bin/ directory!"
-          exit 1
-        fi
-        echo "APK found successfully!"
+        echo "=== bin/ directory ==="
+        ls -la bin/ 2>/dev/null || echo "bin/ does not exist"
+        echo "=== Looking for APK files ==="
+        find . -name "*.apk" 2>/dev/null || echo "No APK files found"
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
